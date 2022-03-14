@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="ipynb_website:version" content="0.9.7" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<link rel="stylesheet" type="text/css" href="../css/jt.css">
+
+<link rel="stylesheet" type="text/css" href="../css/toc2.css">
+
+<link href="../site_libs/jqueryui-1.11.4/jquery-ui.css">
+<link rel="stylesheet" href="../site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="../site_libs/font-awesome-4.5.0/css/font-awesome.min.css" rel="stylesheet" />
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.9.1/jquery-ui.min.js"></script>
+<script src="../site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="../site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="../site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+
+<link rel="stylesheet"
+      href="../site_libs/highlightjs/null.min.css"
+      type="text/css" />
+
+<script src="../site_libs/highlightjs/highlight.pack.js"></script>
+<script>hljs.initHighlightingOnLoad();</script>
+<script type="text/javascript">
+if (window.hljs && document.readyState && document.readyState === "complete") {
+   window.setTimeout(function() {
+      hljs.initHighlighting();
+   }, 0);
+}
+</script>
+
+<script src="../js/doc_toc.js"></script>
+<script src="../js/docs.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.2/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+<script>
+    MathJax.Hub.Config({
+        extensions: ["tex2jax.js"],
+        jax: ["input/TeX", "output/HTML-CSS"],
+        tex2jax: {
+        inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+        displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
+        processEscapes: true
+        },
+        "HTML-CSS": {
+            preferredFont: "TeX",
+            availableFonts: ["TeX"],
+            styles: {
+                scale: 110,
+                ".MathJax_Display": {
+                    "font-size": "110%",
+                }
+            }
+        }
+    });
+</script>
+<script>
+function filterDataFrame(id) {
+    var input = document.getElementById("search_" + id);
+    var filter = input.value.toUpperCase();
+    var table = document.getElementById("dataframe_" + id);
+    var tr = table.getElementsByTagName("tr");
+    // Loop through all table rows, and hide those who don't match the search query
+    for (var i = 1; i < tr.length; i++) {
+        for (var j = 0; j < tr[i].cells.length; ++j) {
+            var matched = false;
+            if (tr[i].cells[j].innerHTML.toUpperCase().indexOf(filter) != -1) {
+                tr[i].style.display = "";
+                matched = true
+                break;
+            }
+            if (!matched)
+                tr[i].style.display = "none";
+        }
+    }
+}
+function sortDataFrame(id, n, dtype) {
+    var table = document.getElementById("dataframe_" + id);
+    var tb = table.tBodies[0]; // use `<tbody>` to ignore `<thead>` and `<tfoot>` rows
+    var tr = Array.prototype.slice.call(tb.rows, 0); // put rows into array
+    if (dtype === 'numeric') {
+        var fn = function(a, b) { 
+            return parseFloat(a.cells[n].textContent) <= parseFloat(b.cells[n].textContent) ? -1 : 1;
+        }
+    } else {
+        var fn = function(a, b) {
+            var c = a.cells[n].textContent.trim().localeCompare(b.cells[n].textContent.trim()); 
+            return c > 0 ? 1 : (c < 0 ? -1 : 0) }
+    }
+    var isSorted = function(array, fn) {
+        if (array.length < 2)
+            return 1;
+        var direction = fn(array[0], array[1]); 
+        for (var i = 1; i < array.length - 1; ++i) {
+            var d = fn(array[i], array[i+1]);
+            if (d == 0)
+                continue;
+            else if (direction == 0)
+                direction = d;
+            else if (direction != d)
+                return 0;
+            }
+        return direction;
+    }
+    var sorted = isSorted(tr, fn);
+    if (sorted == 1 || sorted == -1) {
+        // if sorted already, reverse it
+        for(var i = tr.length - 1; i >= 0; --i)
+            tb.appendChild(tr[i]); // append each row in order
+    } else {
+        tr = tr.sort(fn);
+        for(var i = 0; i < tr.length; ++i)
+            tb.appendChild(tr[i]); // append each row in order
+    }
+}
+</script>
+
+<script>
+$( document ).ready(function(){
+            var cfg={'threshold':3,     // depth of toc (number of levels)
+             'number_sections': false,
+             'toc_cell': false,          // useless here
+             'toc_window_display': true, // display the toc window
+             "toc_section_display": "block", // display toc contents in the window
+             'sideBar':true,       // sidebar or floating window
+             'navigate_menu':false       // navigation menu (only in liveNotebook -- do not change)
+            }
+            var st={};                  // some variables used in the script
+            st.rendering_toc_cell = false;
+            st.config_loaded = false;
+            st.extension_initialized=false;
+            st.nbcontainer_marginleft = $('#notebook-container').css('margin-left')
+            st.nbcontainer_marginright = $('#notebook-container').css('margin-right')
+            st.nbcontainer_width = $('#notebook-container').css('width')
+            st.oldTocHeight = undefined
+            st.cell_toc = undefined;
+            st.toc_index=0;
+            // fire the main function with these parameters
+            table_of_contents(cfg, st);
+            var file=analysisDict[$("h1:first").attr("id")];
+            $("#toc-level0 a").css("color","#126dce");
+            $('a[href="#'+$("h1:first").attr("id")+'"]').hide()
+            var docs=analysisArray;
+            var docs_map=analysisArrayMap;
+            var pos=analysisArray.indexOf(file);
+            for (var a=pos;a>=0;a--){
+                  $('<li><a href="'+docs[a]+'.html"><font color="#073642"><b>'+docs_map[docs[a]].replace(/_/g," ")+'</b></font></a></li>').insertBefore("#toc-level0 li:eq(0)");
+            }
+            $('a[href="'+file+'.html'+'"]').css("color","#126dce");
+            for (var a=pos+1;a<docs.length;a++){
+                  $(".toc #toc-level0").append('<li><a href="'+docs[a]+'.html"><font color="#073642"><b>'+docs_map[docs[a]].replace(/_/g," ")+'</b></font></a></li>');
+            }
+            // $("#toc-header").hide(); // comment out because it prevents search bar from displaying
+    });
+</script>
+
+<script>
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+  // mark it active
+  menuAnchor.parent().addClass('active');
+  // if it's got a parent navbar menu mark it active as well
+  menuAnchor.closest('li.dropdown').addClass('active');
+});
+</script>
+<div class="container-fluid main-container">
+<!-- tabsets -->
+<script src="../site_libs/navigation-1.1/tabsets.js"></script>
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+</script>
+
+
+
+<title>Brain xQTL analysis</title>
+
+<style type = "text/css">
+body {
+  font-family: "Droid Sans";
+  padding-top: 66px;
+  padding-bottom: 40px;
+}
+</style>
+</head>
+
+<body>
+<div tabindex="-1" id="notebook" class="border-box-sizing">
+<div class="container" id="notebook-container">
+
+<!-- code folding -->
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="../index.html">Brain xQTL analysis</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        
+<li>
+  <a href="../index.html">Overview</a>
+</li>
+        
+<li>
+  <a href="../analysis.html">Analysis</a>
+</li>
+        
+      </ul>
+        
+<ul class="nav navbar-nav navbar-right">
+<li>
+   <a href="http://github.com/cumc/brain-xqtl-analysis"> <span class="fa fa-github"></span> </a>
+</li>
+</ul>
+        
+      </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
+</div><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h1 id="VCF-QC-Minimum-Work-Example">VCF QC Minimum Work Example<a class="anchor-link" href="#VCF-QC-Minimum-Work-Example">&#182;</a></h1><h2 id="Rename-Chromosomes">Rename Chromosomes<a class="anchor-link" href="#Rename-Chromosomes">&#182;</a></h2><p>Initially, this step creates a conversion file with pairs in the format: old_name new_name\n</p>
+<p>This file is used in bcftools to take the input vcf file (00-All.vcf.gz) and ass the chromosome names (chr#) to the file, and output
+that resulting file as 00-All.add_chrs.vcf.gz). Tabix is then used to create an index file (00-All.add_chr.vcf.gz.tbi) from the previous output file, this allows for quick data retrieval. Lastly, the conversion file that was made is removed.</p>
+<p>Note: LFS system has walltime in the format HH:MM, so I can't accept the SOS format of HH:MM:SS without modification.</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[2]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-sos"><pre><span></span><span class="n">module</span> <span class="n">purge</span><span class="p">;</span>
+<span class="n">module</span> <span class="n">load</span> <span class="n">singularity</span><span class="p">;</span>
+<span class="n">conda</span> <span class="n">activate</span> <span class="n">xqtl</span><span class="p">;</span>
+<span class="n">sos</span> <span class="n">run</span> <span class="n">VCF_QC</span><span class="o">.</span><span class="n">ipynb</span> <span class="n">rename_chrs</span> <span class="o">--</span><span class="n">genoFile</span> <span class="n">reference_data</span><span class="o">/</span><span class="mo">00</span><span class="o">-</span><span class="n">All</span><span class="o">.</span><span class="n">vcf</span><span class="o">.</span><span class="n">gz</span> <span class="o">--</span><span class="n">cwd</span> <span class="n">reference_data</span> <span class="o">--</span><span class="n">container</span> <span class="n">container</span><span class="o">/</span><span class="n">bioinfo</span><span class="o">.</span><span class="n">sif</span> <span class="o">-</span><span class="n">c</span> <span class="n">config</span><span class="o">.</span><span class="n">yml</span> <span class="o">-</span><span class="n">q</span> <span class="n">lfs</span> <span class="o">&amp;</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area">
+
+    <div class="prompt"></div>
+
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>(xqtl) [1] 232252
+(xqtl) 
+</pre>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
+</div><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="DBSNP-Annotate">DBSNP Annotate<a class="anchor-link" href="#DBSNP-Annotate">&#182;</a></h2><p>The query command of BCFTools allows us to transform the input genotype file into a user-defined format.</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[4]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-sos"><pre><span></span><span class="n">sos</span> <span class="n">run</span> <span class="n">VCF_QC</span><span class="o">.</span><span class="n">ipynb</span> <span class="n">dbsnp_annotate</span> <span class="o">--</span><span class="n">genoFile</span> <span class="n">reference_data</span><span class="o">/</span><span class="mo">00</span><span class="o">-</span><span class="n">All</span><span class="o">.</span><span class="n">add_chr</span><span class="o">.</span><span class="n">vcf</span><span class="o">.</span><span class="n">gz</span> <span class="o">--</span><span class="n">cwd</span> <span class="n">reference_data</span> <span class="o">--</span><span class="n">container</span> <span class="n">container</span><span class="o">/</span><span class="n">bioinfo</span><span class="o">.</span><span class="n">sif</span> <span class="o">-</span><span class="n">c</span> <span class="n">config</span><span class="o">.</span><span class="n">yml</span> <span class="o">-</span><span class="n">q</span> <span class="n">lfs</span> <span class="o">&amp;</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area">
+
+    <div class="prompt"></div>
+
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>INFO: Running <span class="ansi-green-fg">dbsnp_annotate</span>: 
+INFO: t1t310b4b8dc96ad6 <span class="ansi-green-fg">submitted</span> to lfs with job id 56281163
+[3] 317046
+(xqtl) 
+</pre>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
+</div><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>For some reason, the input isn't being recognized.</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[3]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-sos"><pre><span></span><span class="n">sos</span> <span class="n">status</span> <span class="o">-</span><span class="n">v4</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area">
+
+    <div class="prompt"></div>
+
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>(xqtl) tb6faa569707c0ea7	completed
+
+Created 2 hr 51 min ago
+Started 2 hr 51 min ago
+Ran for 30 min
+TASK:
+=====
+bash(fr&#34;&#34;&#34;for i in {{1..22}} X Y MT; do echo &#34;$i chr$i&#34;; done &gt; {_output:nn}.chr_name_conv.txt
+bcftools annotate --rename-chrs {_output:nn}.chr_name_conv.txt {_input} -Oz -o {_output}
+tabix -p vcf {_output}
+rm -f {_output:nn}.chr_name_conv.txt
+
+&#34;&#34;&#34;, container = container, stderr = f&#39;{_output:nn}.stderr&#39;, stdout = f&#39;{_output:nn}.stdout&#39;)
+
+TAGS:
+=====
+VCF_QC rename_chrs rename_chrs_00-All.add_chr.vcf wfa45494e96146940
+
+GLOBAL:
+=======
+(&lt;ast.Module object at 0x7f6d5cc433d0&gt;, {&#39;genoFile&#39;: path(&#39;reference_data/00-All.vcf.gz&#39;), &#39;container&#39;: &#39;container/bioinfo.sif&#39;, &#39;cwd&#39;: path(&#39;/sc/arion/projects/load/users/edwart10/projects/02-09-2022-xQTL-Minimum-Work-Examples/VCF_QC/reference_data&#39;)})
+
+ENVIRONMENT:
+============
+__signature_vars__    {&#39;bash&#39;, &#39;_output&#39;, &#39;_input&#39;, &#39;cwd&#39;, &#39;container&#39;}
+_depends              []
+_index                0
+_input                [file_target(&#39;reference_data/00-All.vcf.gz&#39;)]
+_output               [file_target(&#39;/sc/arion/projects/load/users/edwart10/projects/02-09-2022-xQTL-Minimum-Work-Examples/VCF_QC/reference_data/00-All.add_chr.vcf.gz&#39;)]
+_runtime              {&#39;cores&#39;: 1,
+ &#39;max_cores&#39;: 40,
+ &#39;max_mem&#39;: 326000000000,
+ &#39;max_walltime&#39;: &#39;144:00:00&#39;,
+ &#39;mem&#39;: 60000000000,
+ &#39;queue&#39;: &#39;lfs&#39;,
+ &#39;run_mode&#39;: &#39;run&#39;,
+ &#39;sig_mode&#39;: &#39;default&#39;,
+ &#39;tags&#39;: &#39;rename_chrs_00-All.add_chr.vcf&#39;,
+ &#39;trunk_size&#39;: 1,
+ &#39;trunk_workers&#39;: 1,
+ &#39;verbosity&#39;: 2,
+ &#39;walltime&#39;: &#39;05:00:00&#39;,
+ &#39;workdir&#39;: &#39;/sc/arion/projects/load/users/edwart10/projects/02-09-2022-xQTL-Minimum-Work-Examples/VCF_QC&#39;}
+container             &#39;container/bioinfo.sif&#39;
+cwd                   path(&#39;/sc/arion/projects/load/users/edwart10/projects/02-09-2022-xQTL-Minimum-Work-Examples/VCF_QC/reference_data&#39;)
+step_name             &#39;rename_chrs&#39;
+workflow_id           &#39;wfa45494e96146940&#39;
+
+EXECUTION STATS:
+================
+Duration:	30 min
+Peak CPU:	0.0 %
+Peak mem:	84.1 MiB
+
+execution script:
+================
+#!/bin/bash
+#BSUB -J tb6faa569707c0ea7
+#BSUB -P acc_LOAD
+#BSUB -q premium
+#BSUB -n 1
+#BSUB -R span[hosts=1]
+#BSUB -R rusage[mem=60000]
+#BSUB -W 05:00
+#BSUB -o /hpc/users/edwart10/.sos/tasks/tb6faa569707c0ea7.out
+#BSUB -e /hpc/users/edwart10/.sos/tasks/tb6faa569707c0ea7.err
+#BSUB -N
+module purge
+source /hpc/users/edwart10/mambaforge/bin/activate analysis
+module load singularity
+cd /sc/arion/projects/load/users/edwart10/projects/02-09-2022-xQTL-Minimum-Work-Examples/VCF_QC
+sos execute tb6faa569707c0ea7 -v 2 -s default -m run
+
+t1t310b4b8dc96ad6	completed
+
+Created 1 hr 58 min ago
+Started 1 hr 58 min ago
+Ran for 1 sec
+TASK:
+=====
+#1 of 1 subtasks:
+bash(fr&#34;&#34;&#34;bcftools query  -f&#39;%CHROM\t%POS\t%ID\t%REF\t%ALT\n&#39; {_input}  | \
+    awk &#39;BEGIN{{OFS=&#34;\t&#34;;}} {{if (length ($4) &gt; length ($5)) {{print $1,$2,$2+ (length ($4) - 1),$3}} else {{print $1,$2, $2 + (length ($4) -1 ),$3}}}}&#39; | \
+    bgzip -c &gt; {_output}
+
+&#34;&#34;&#34;, container = container, stderr = f&#39;{_output:n}.stderr&#39;, stdout = f&#39;{_output:n}.stdout&#39;)
+
+TAGS:
+=====
+VCF_QC dbsnp_annotate dbsnp_annotate_.variants wbca4d0e39cfef3f8
+
+ENVIRONMENT:
+============
+_depends              []
+_index                0
+_input                []
+_output               [file_target(&#39;.variants.gz&#39;)]
+_runtime              {&#39;cores&#39;: 1,
+ &#39;max_cores&#39;: 40,
+ &#39;max_mem&#39;: 326000000000,
+ &#39;max_walltime&#39;: &#39;144:00:00&#39;,
+ &#39;mem&#39;: 60000000000,
+ &#39;num_workers&#39;: 1,
+ &#39;run_mode&#39;: &#39;run&#39;,
+ &#39;sig_mode&#39;: &#39;default&#39;,
+ &#39;verbosity&#39;: 2,
+ &#39;walltime&#39;: &#39;05:00:00&#39;,
+ &#39;workdir&#39;: &#39;/sc/arion/projects/load/users/edwart10/projects/02-09-2022-xQTL-Minimum-Work-Examples/VCF_QC&#39;}
+step_depends          Unspecified
+step_input            Unspecified
+step_name             &#39;dbsnp_annotate&#39;
+step_output           Unspecified
+
+EXECUTION STATS:
+================
+
+execution script:
+================
+#!/bin/bash
+#BSUB -J t1t310b4b8dc96ad6
+#BSUB -P acc_LOAD
+#BSUB -q premium
+#BSUB -n 1
+#BSUB -R span[hosts=1]
+#BSUB -R rusage[mem=60000]
+#BSUB -W 05:00
+#BSUB -o /hpc/users/edwart10/.sos/tasks/t1t310b4b8dc96ad6.out
+#BSUB -e /hpc/users/edwart10/.sos/tasks/t1t310b4b8dc96ad6.err
+#BSUB -N
+module purge
+source /hpc/users/edwart10/mambaforge/bin/activate analysis
+module load singularity
+cd /sc/arion/projects/load/users/edwart10/projects/02-09-2022-xQTL-Minimum-Work-Examples/VCF_QC
+sos execute t1t310b4b8dc96ad6 -v 2 -s default -m run
+
+
+standard output:
+================
+&gt; t310b4b8dc96ad630	dbsnp_annotate wbca4d0e39cfef3f8 VCF_QC dbsnp_annotate_.variants	completed
+output files:
+.variants.gz
+
+
+(xqtl) 
+</pre>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[&nbsp;]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-sos"><pre><span></span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+<hr>
+&copy 2022 ADSP Functional Genomics Brain xQTL Consortium
+
+</div>
+</div>
+</body>
+</html>
